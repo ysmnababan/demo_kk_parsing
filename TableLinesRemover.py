@@ -6,7 +6,7 @@ class TableLinesRemover:
     def __init__(self, image):
         self.image = image
 
-    def execute(self):
+    def execute(self, output_dir):
         self.grayscale_image()
         self.store_process_image("0_grayscaled.jpg", self.grey)
         self.threshold_image()
@@ -18,7 +18,7 @@ class TableLinesRemover:
         self.erode_horizontal_lines()
         self.store_process_image("4_erode_horizontal_lines.jpg", self.horizontal_lines_eroded_image)
 
-        self.crop_table()
+        self.crop_table(output_dir)
         # self.combine_eroded_images()
         # self.store_process_image("5_combined_eroded_images.jpg", self.combined_image)
         # self.dilate_combined_image_to_make_lines_thicker()
@@ -89,7 +89,7 @@ class TableLinesRemover:
 
         return grouped
     
-    def crop_table(self):
+    def crop_table(self, output_dir):
         line_img = self.horizontal_lines_eroded_image
         # Find vertical lines as non-zero columns
         cols_sum = np.sum(line_img > 0, axis=0)  # Sum vertically to find white lines
@@ -107,7 +107,6 @@ class TableLinesRemover:
         aligned_img = self.image
 
         # Crop between each pair of dividers
-        output_dir = "output/process_images/cropped_columns"
         os.makedirs(output_dir, exist_ok=True)
 
         for i in range(len(grouped_lines) - 1):
