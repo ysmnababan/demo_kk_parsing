@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import os
-
+import TableLinesRemover as tlr
 class ImageClickZoom:
     def __init__(self, image, scale_init=0.5):
         self.image = image
@@ -127,15 +127,23 @@ mid_y = (top_y + bottom_y) // 2
 height, width = aligned_target.shape[:2]
 
 # Define horizontal crop regions based on transformed Y coordinates
-MARGIN = 30
+PADDING = 30
 regions = [
-    (0, top_y+MARGIN),                # Part 1: Above table
+    (0, top_y+PADDING),                # Part 1: Above table
     (top_y, mid_y),            # Part 2: Top half of table
-    (mid_y, bottom_y+MARGIN),         # Part 3: Bottom half of table
+    (mid_y, bottom_y),         # Part 3: Bottom half of table
     (bottom_y, height)         # Part 4: Below table
 ]
 
 # Crop and save each region
 for i, (start_y, end_y) in enumerate(regions, start=1):
     cropped = aligned_target[start_y:end_y, :]
+    if i == 2 or i == 3 :
+        output_dir= "./output/"
+        if i == 2 :
+            output_dir+= "sliced_upper_table"
+        else :
+            output_dir+= "sliced_lower_table"
+        lines_remover = tlr.TableLinesRemover(cropped)
+        lines_remover.execute(output_dir)
     cv2.imwrite(f"./output/horizontal_part_{i}.png", cropped)
