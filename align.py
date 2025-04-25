@@ -130,8 +130,8 @@ height, width = aligned_target.shape[:2]
 PADDING = 30
 regions = [
     (0, top_y+PADDING),                # Part 1: Above table
-    (top_y, mid_y),            # Part 2: Top half of table
-    (mid_y, bottom_y),         # Part 3: Bottom half of table
+    (top_y, mid_y+PADDING),            # Part 2: Top half of table
+    (mid_y, bottom_y+PADDING),         # Part 3: Bottom half of table
     (bottom_y, height)         # Part 4: Below table
 ]
 
