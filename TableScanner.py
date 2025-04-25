@@ -16,10 +16,8 @@ class TableScanner:
     
     def detect_single_image(self, image_path):
         client = vision.ImageAnnotatorClient()
-
         with io.open(image_path, 'rb') as image_file:
             content = image_file.read()
-
         image = vision.Image(content=content)
 
         response = client.document_text_detection(image=image)
@@ -27,53 +25,50 @@ class TableScanner:
         if response.error.message:
             raise Exception(response.error.message)
 
-        annotations = response.text_annotations
-
-        if not annotations:
-            return []
-
-        blocks = []
-        for annotation in annotations[1:]:
-            text = annotation.description
-            vertices = annotation.bounding_poly.vertices
-            top = min(vertex.y for vertex in vertices)
-            left = min(vertex.x for vertex in vertices)
-            blocks.append({'text': text, 'top': top, 'left': left})
-
-        # Sort by top first
-        blocks.sort(key=lambda b: (b['top'], b['left']))
-
-        # Group by y-axis (same line if y is close enough)
+        # Collect lines with their Y center
         lines = []
-        current_line = []
-        last_top = None
-        threshold = 10  # pixel threshold for grouping in same row
 
-        for block in blocks:
-            if last_top is None:
-                current_line.append(block)
-                last_top = block['top']
-                continue
+        for page in response.full_text_annotation.pages:
+            for block in page.blocks:
+                for paragraph in block.paragraphs:
+                    words = []
+                    ys = []
 
-            if abs(block['top'] - last_top) <= threshold:
-                current_line.append(block)
+                    for word in paragraph.words:
+                        text = ''.join([symbol.text for symbol in word.symbols])
+                        words.append(text)
+
+                        # Compute Y center
+                        vertices = word.bounding_box.vertices
+                        y_center = sum(v.y for v in vertices) / 4
+                        ys.append(y_center)
+
+                    line_text = ' '.join(words)
+                    avg_y = sum(ys) / len(ys) if ys else 0
+                    lines.append((avg_y, line_text))
+
+        # Sort by Y position (top to bottom)
+        lines.sort(key=lambda x: x[0])
+
+        # Merge lines with similar Y position
+        merged_lines = []
+        threshold = 10  # tune this threshold if needed
+        current_y = None
+        current_line = ''
+
+        for y, text in lines:
+            if current_y is None:
+                current_y = y
+                current_line = text
+            elif abs(y - current_y) <= threshold:
+                current_line += ' ' + text
             else:
-                # Sort current line left to right
-                current_line.sort(key=lambda b: b['left'])
-                line_text = ' '.join(b['text'] for b in current_line)
-                lines.append(line_text)
+                merged_lines.append(current_line.strip())
+                current_line = text
+                current_y = y
 
-                # Start new line
-                current_line = [block]
-                last_top = block['top']
-
-        # Add the last line
         if current_line:
-            current_line.sort(key=lambda b: b['left'])
-            line_text = ' '.join(b['text'] for b in current_line)
-            lines.append(line_text)
+            merged_lines.append(current_line.strip())
 
-        # Filter header until the '()' symbol found
-
-        return self.filter_education_lines(lines)
+        return self.filter_education_lines(merged_lines)
     
