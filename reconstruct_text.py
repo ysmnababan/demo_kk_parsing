@@ -1,6 +1,11 @@
 import io
 from google.cloud import vision
+import re
+import json
+import os
 
+first_keywords = ["No.","Nama", "Kecamatan", "Alamat", "Kabupaten", "RT", "Kode", "Desa", "Provinsi"]
+last_keywords = ["No.", "Keluarga", "Kecamatan", "Alamat", "Kota", "RW", "Pos", "Kelurahan", "Provinsi"]
 def get_words_with_positions(image_path):
     client = vision.ImageAnnotatorClient()
 
@@ -48,7 +53,17 @@ def group_words_into_lines(words, y_threshold=20):
         lines.append(current_line)
     return lines
 
-def print_reconstructed_text(lines, space_threshold=100):
+def prefix_keywords_with_hash(text):
+    for keyword in first_keywords:
+        # Allow underscores between letters and match case-insensitively
+        pattern = r'(?<!#)(?:_*)'.join(list(keyword))
+        regex = re.compile(rf'(?<!#){pattern}', re.IGNORECASE)
+        text = regex.sub(lambda m: '#' + m.group(), text)
+
+    return text
+
+def reconstructed_text(lines, space_threshold=100):
+    result = ""
     for line in lines:
         # Sort words left to right
         line.sort(key=lambda w: w[1])
@@ -68,13 +83,47 @@ def print_reconstructed_text(lines, space_threshold=100):
                     output_line += '_'
                 output_line += word
                 last_x = x + len(word) * 10  # Estimate next position
-        print(output_line)
+        result+= prefix_keywords_with_hash(output_line)
+        # print(prefix_keywords_with_hash(output_line))
+    print(result)
+    return result
+
+def extract_values(text):
+    result = {}
+
+    for keyword in last_keywords:
+        # Match keyword, optional underscores/spaces, optional colon, then capture until #, newline, or end of text
+        pattern = re.compile(rf'{keyword}[\s_]*:?([\s\S]*?)(?=#|\n|$)', re.IGNORECASE)
+        matches = pattern.findall(text)
+        if matches:
+            value = matches[-1]  # Take the last match, assuming it's the most relevant one
+            cleaned = re.sub(r'\s+', ' ', value.replace(':', '').replace('_', ' ')).strip()
+            result[keyword.lower()] = cleaned
+
+    return result
+
+def save_to_json(data, filename):
+    if os.path.exists(filename):
+        with open(filename, 'r', encoding='utf-8') as f:
+            existing_data = json.load(f)
+    else:
+        existing_data = {}
+
+    # Add only new keys (don't overwrite existing keys)
+    for key, value in data.items():
+        if key not in existing_data:
+            existing_data[key] = value
+
+    with open(filename, 'w', encoding='utf-8') as f:
+        json.dump(existing_data, f, ensure_ascii=False, indent=4)
 
 def main():
     image_path = './output/horizontal_part_1.png'
     words = get_words_with_positions(image_path)
     lines = group_words_into_lines(words)
-    print_reconstructed_text(lines)
+    r_text = reconstructed_text(lines)
+    extracted_val = extract_values(r_text)
+    save_to_json(extracted_val,"./output/kk_data.json")
 
 if __name__ == "__main__":
     main()
