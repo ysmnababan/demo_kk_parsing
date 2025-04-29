@@ -7,6 +7,7 @@ class TableLinesRemover:
         self.image = image
 
     def execute(self, output_dir):
+        self.output_dir = output_dir
         self.grayscale_image()
         self.store_process_image("0_grayscaled.jpg", self.grey)
         self.threshold_image()
@@ -44,9 +45,9 @@ class TableLinesRemover:
         self.vertical_lines_eroded_image = cv2.dilate(self.vertical_lines_eroded_image, hor, iterations=10)
 
     def erode_horizontal_lines(self):
-        ver = np.ones((11, 1), dtype=np.uint8) 
-        self.horizontal_lines_eroded_image = cv2.erode(self.inverted_image, ver, iterations=10)
-        self.horizontal_lines_eroded_image = cv2.dilate(self.horizontal_lines_eroded_image, ver, iterations=10)
+        ver = np.ones((2, 1), dtype=np.uint8) 
+        self.horizontal_lines_eroded_image = cv2.erode(self.inverted_image, ver, iterations=2)
+        self.horizontal_lines_eroded_image = cv2.dilate(self.horizontal_lines_eroded_image, ver, iterations=3)
 
     def combine_eroded_images(self):
         self.combined_image = cv2.add(self.vertical_lines_eroded_image, self.horizontal_lines_eroded_image)
@@ -64,9 +65,19 @@ class TableLinesRemover:
         self.image_without_lines_noise_removed = cv2.dilate(self.image_without_lines_noise_removed, kernel, iterations=1)
 
     def store_process_image(self, file_name, image):
-        path = "./output/process_images/table_lines_remover/" + file_name
+        path = self.output_dir +"/" + file_name
         cv2.imwrite(path, image)
 
+    def visualize_vertical_lines(self, image, grouped_lines, color=(0, 255, 0), thickness=2):
+        """
+        Draw vertical lines on the image for visual debugging.
+        `grouped_lines` should be a list of x-coordinates.
+        """
+        img_copy = image.copy()
+        for x in grouped_lines:
+            cv2.line(img_copy, (x, 0), (x, img_copy.shape[0]), color, thickness)
+        return img_copy
+    
     def group_close_positions(self, positions, min_dist=15):
         grouped = []
         current_group = []
@@ -97,8 +108,12 @@ class TableLinesRemover:
 
         # Get the x-coordinates of white vertical lines
         line_positions = np.where(cols_sum > threshold)[0]
-        grouped_lines = self.group_close_positions(line_positions, min_dist=15)
+        print(line_positions)
+        grouped_lines = self.group_close_positions(line_positions, min_dist=65)
 
+        # Visualize the result
+        visual_img = self.visualize_vertical_lines(self.image, grouped_lines)
+        cv2.imwrite(self.output_dir +"/grouped_columns_preview.png", visual_img)
         print(f"Detected {len(grouped_lines)} column dividers: {grouped_lines}")
 
         if len(grouped_lines) > 1:
