@@ -4,8 +4,8 @@ import re
 import json
 import os
 
-first_keywords = ["No.","Nama", "Kecamatan", "Alamat", "Kabupaten", "RT", "Kode", "Desa", "Provinsi"]
-last_keywords = ["No.", "Keluarga", "Kecamatan", "Alamat", "Kota", "RW", "Pos", "Kelurahan", "Provinsi"]
+first_keywords = ["No","Nama", "Kecamatan", "Alamat", "Kabupaten", "RT", "Kode", "Desa", "Provinsi"]
+last_keywords = ["No", "Keluarga", "Kecamatan", "Alamat", "Kota", "RW", "Pos", "Kelurahan", "Provinsi"]
 def get_words_with_positions(image_path):
     client = vision.ImageAnnotatorClient()
 
