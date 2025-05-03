@@ -1,6 +1,7 @@
 import re
 import json
 import os
+from translator import translate
 def preprocess_string(s, unwanted_chars="/-.,"):
     # 1. Remove unwanted characters dynamically using a character class
     pattern = f"[{re.escape(unwanted_chars)}]"
@@ -77,6 +78,7 @@ class FamilyData:
 
     def preprocess_sexes(self):
         self.sexes = [preprocess_string(sex, "/-,1234567890") for sex in self.sexes]
+        self.sexes = [translate(item) for item in self.sexes]
 
     def preprocess_birthplaces(self):
         self.birthplaces = [preprocess_string(birthplace, "/-,1234567890") for birthplace in self.birthplaces]
@@ -86,21 +88,27 @@ class FamilyData:
 
     def preprocess_religions(self):
         self.religions = [preprocess_string(religion, "/-,1234567890") for religion in self.religions]
+        self.religions = [translate(item) for item in self.religions]
 
     def preprocess_educations(self):
         self.educations = [preprocess_string(education, "-,1234567890") for education in self.educations]
+        self.educations = [translate(item) for item in self.educations]
 
     def preprocess_profession(self):
         self.profession = [preprocess_string(p, "-,1234567890") for p in self.profession]
+        self.profession = [translate(item) for item in self.profession]
 
     def preprocess_marriage_stats(self):
         self.marriage_stats = [preprocess_string(item, "/-,1234567890") for item in self.marriage_stats]
+        self.marriage_stats = [translate(item) for item in self.marriage_stats]
 
     def preprocess_marriage_rels(self):
         self.marriage_rels = [preprocess_string(item, "/-,1234567890") for item in self.marriage_rels]
+        self.marriage_rels = [translate(item) for item in self.marriage_rels]
 
     def preprocess_citizenships(self):
         self.citizenships = [preprocess_string(item, "/-,1234567890") for item in self.citizenships]
+        self.citizenships = [translate(item) for item in self.citizenships]
 
     def preprocess_paspor_no(self):
         self.paspor_no = [preprocess_string(item, "/-,") for item in self.paspor_no]
