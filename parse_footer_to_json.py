@@ -119,8 +119,7 @@ def save_to_json(data, filename):
 
     # Add only new keys (don't overwrite existing keys)
     for key, value in data.items():
-        if key not in existing_data:
-            existing_data[key] = value
+        existing_data[key] = value
 
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(existing_data, f, ensure_ascii=False, indent=4)

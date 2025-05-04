@@ -26,7 +26,7 @@ UPPER_TABLE_DIR = "./output/sliced_upper_table/"
 
 @dataclass
 class KKStructure:
-    no : str = ""
+    version : str = ""
     names: list[str] = field(default_factory=list)
     niks: list[str] = field(default_factory=list)
     sexes: list[str] = field(default_factory=list)
@@ -125,12 +125,22 @@ class KKStructure:
         self.mother_names = table_scanner.detect_single_image(LOWER_TABLE_DIR+MOTHER_COLUMN_IMAGE_FILE_NAME)
         print("scanning mother names completed")
 
-    def generate_json(self, filename):
-        with open(filename, "w") as f:
-            json.dump(asdict(self), f, indent=4)
-        print("json file saved...")
+    def generate_json(self, filename, template_filename):
+        # Load the existing template JSON
+        with open(template_filename, "r") as f:
+            data = json.load(f)
 
-    def execute(self, filename):
+        # Update the fields in the template with current dataclass values
+        for key, value in asdict(self).items():
+            if key in data:
+                data[key] = value  # overwrite only if key exists in template
+
+        # Save back to the same file (or you can specify a different output filename)
+        with open(filename, "w") as f:
+            json.dump(data, f, indent=4)
+        print(f"JSON file '{filename}' updated based on template.")
+
+    def execute(self, filename, template_filename):
         self.add_names()
         self.add_niks()
         self.add_sexes()
@@ -147,4 +157,4 @@ class KKStructure:
         self.add_kitas_no()
         self.add_father_names()
         self.add_mother_names()
-        self.generate_json(filename=filename)
+        self.generate_json(filename=filename,template_filename=template_filename)
