@@ -1,7 +1,15 @@
 import cv2
 import numpy as np
-import os
 import TableLinesRemover as tlr
+import tkinter as tk
+
+def get_screen_size():
+    root = tk.Tk()
+    width = root.winfo_screenwidth()
+    height = root.winfo_screenheight()
+    root.destroy()
+    return width, height
+
 class ImageClickZoom:
     def order_points_clockwise(self, pts):
         # pts: list of 4 (x, y) points
@@ -37,6 +45,12 @@ class ImageClickZoom:
     def show(self):
         cv2.namedWindow(self.window_name)
         cv2.setMouseCallback(self.window_name, self.mouse_callback)
+
+        # Center the window on the screen
+        disp_h, disp_w = int(self.image.shape[0] * self.scale), int(self.image.shape[1] * self.scale)
+        win_x = max((screen_w - disp_w) // 2, 0)
+        win_y = max((screen_h - disp_h) // 2, 0)
+        cv2.moveWindow(self.window_name, win_x, win_y)
 
         while True:
             disp_img = self.get_display_image()
@@ -101,9 +115,22 @@ if target is None or template is None:
     raise FileNotFoundError("Check your image paths.")
 
 target = cv2.resize(target, (template.shape[1], template.shape[0]))
-h, w = template.shape[:2]
+h_img, w_img = target.shape[:2]
 
-clicker = ImageClickZoom(target, scale_init=0.5)
+# Get screen size
+screen_w, screen_h = get_screen_size()
+
+# Fit image into ~90% of the screen
+max_w = int(screen_w * 0.9)
+max_h = int(screen_h * 0.9)
+scale_w = max_w / w_img
+scale_h = max_h / h_img
+best_scale = min(scale_w, scale_h, 1.0)  # don't upscale
+
+print(f"Initial scale set to: {best_scale:.2f}")
+
+# === Step 2: Start clicking ===
+clicker = ImageClickZoom(target, scale_init=best_scale)
 clicked_points = clicker.show()
 
 if len(clicked_points) != 4:
@@ -122,7 +149,7 @@ template_pts = np.array([
 ], dtype='float32')
 
 M = cv2.getPerspectiveTransform(target_pts, template_pts)
-aligned_target = cv2.warpPerspective(target, M, (w, h))
+aligned_target = cv2.warpPerspective(target, M, (w_img, h_img))
 
 # Save aligned image
 cv2.imwrite(OUTPUT_ALIGNED_PATH, aligned_target)
