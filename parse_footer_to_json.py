@@ -5,7 +5,7 @@ import json
 import os
 
 first_keywords = ["Dikeluarkan", "NIP.", "Kepala", "Dinas", "PLT"]
-last_keywords = ["Tanggal", "NIP."]
+last_keywords = ["Tanggal", "NIP"]
 
 def get_words_with_positions(image_path):
     client = vision.ImageAnnotatorClient()
@@ -30,29 +30,6 @@ def get_words_with_positions(image_path):
                     avg_x = sum(vertex.x for vertex in bounding_box.vertices) / 4
                     words.append((word_text, avg_x, avg_y))
     return words
-
-# def group_words_into_lines(words, y_threshold=20):
-#     # First, sort by y
-#     words.sort(key=lambda w: w[2])
-
-#     lines = []
-#     current_line = []
-#     last_y = None
-
-#     for word, x, y in words:
-#         if last_y is None:
-#             current_line.append((word, x))
-#             last_y = y
-#         elif abs(y - last_y) <= y_threshold:
-#             current_line.append((word, x))
-#             last_y = (last_y + y) / 2  # smooth the y a bit
-#         else:
-#             lines.append(current_line)
-#             current_line = [(word, x)]
-#             last_y = y
-#     if current_line:
-#         lines.append(current_line)
-#     return lines
 
 def group_words_into_lines(words_with_positions, y_threshold=20):
     """
@@ -92,32 +69,6 @@ def prefix_keywords_with_hash(text):
         text = regex.sub(lambda m: '#' + m.group(), text)
 
     return text
-
-# def reconstructed_text(lines, space_threshold=100):
-#     result = ""
-#     for line in lines:
-#         # Sort words left to right
-#         line.sort(key=lambda w: w[1])
-
-#         output_line = ''
-#         last_x = None
-#         for word, x in line:
-#             if last_x is None:
-#                 output_line += word
-#                 last_x = x
-#             else:
-#                 gap = x - last_x
-#                 num_spaces = int(gap / space_threshold)
-#                 if num_spaces > 0:
-#                     output_line += '_' * num_spaces
-#                 else:
-#                     output_line += '_'
-#                 output_line += word
-#                 last_x = x + len(word) * 10  # Estimate next position
-#         result+= prefix_keywords_with_hash(output_line) +'\n'
-#         # print(prefix_keywords_with_hash(output_line))
-#     print(result)
-#     return result
 
 def reconstructed_text(lines, space_threshold=100):
     result = ""
@@ -235,12 +186,9 @@ def clean_officer_name(name):
     cleaned_name = re.sub(r'\s*/\s*', '', name)
     return cleaned_name
 
-def main():
-    image_path = './output/horizontal_part_4.png'
+def execute(image_path, output_path):
     words = get_words_with_positions(image_path)
     lines = group_words_into_lines(words)
-    # lines = [[('04-02-2016', 2007.0), ('Dikeluarkan', 790.0), ('Tanggal', 1196.5)], [('KABUPATEN', 6308.5), ('DISDUKCAPIL', 5797.5), ('LEMBAR', 715.0), ('KEPALA', 5362.0), ('I.', 1765.0), ('Kepala', 1998.5), ('KEPALA', 3519.5), ('KELUARGA', 3890.5), ('Keluarga', 2331.5)], [('INDRAMAYU', 5868.0), ('II', 1771.5), ('.', 1816.5), ('RT', 1918.5)], [('.', 1842.5), ('III', 1782.5), ('Desa', 1964.0), ('/', 2078.5), ('Kelurahan', 2294.5)], [('.', 1828.5), ('IV', 1780.0), ('Kecamatan', 2088.0)], [('H.', 5581.5), ('KAMU', 5799.0), ('/', 5980.0), ('D', 6011.5), (',', 6055.0), ('SH', 6147.0), ('.', 6220.0), ('ABSORI', 3791.5), ('M.', 3564.0)], [('195904071983031012', 5966.5), ('NIP', 5425.5), ('Tanda', 3367.5), ('Tangan', 3618.0), ('/', 3757.5), ('Cap', 3836.5), ('Jempol', 4048.5)]]
-    # lines = [{'y': 162.5, 'words': [('Dikeluarkan', 790.0), ('Tanggal', 1196.5), ('04-02-2016', 2007.0)]}, {'y': 279.0, 'words': [('LEMBAR', 715.0), ('I.', 1765.0), ('Kepala', 1998.5), ('Keluarga', 2331.5), ('KEPALA', 3519.5), ('KELUARGA', 3890.5), ('KEPALA', 5362.0), ('DISDUKCAPIL', 5797.5), ('KABUPATEN', 6308.5)]}, {'y': 366.5, 'words': [('II', 1771.5), ('.', 1816.5), ('RT', 1918.5), ('INDRAMAYU', 5868.0)]}, {'y': 464.5, 'words': [('III', 1782.5), ('.', 1842.5), ('Desa', 1964.0), ('/', 2078.5), ('Kelurahan', 2294.5)]}, {'y': 552.0, 'words': [('IV', 1780.0), ('.', 1828.5), ('Kecamatan', 2088.0)]}, {'y': 664.0, 'words': [('M.', 3564.0), ('ABSORI', 3791.5), ('H.', 5581.5), ('KAMU', 5799.0), ('/', 5980.0), ('D', 6011.5), (',', 6055.0), ('SH', 6147.0), ('.', 6220.0)]}, {'y': 747.5, 'words': [('Tanda', 3367.5), ('Tangan', 3618.0), ('/', 3757.5), ('Cap', 3836.5), ('Jempol', 4048.5), ('NIP', 5425.5), ('195904071983031012', 5966.5)]}]
     r_text = reconstructed_text(lines)
     extracted_val = extract_values(r_text)
     officer_name = find_line_above(lines, "NIP")
@@ -248,7 +196,9 @@ def main():
         extracted_val["officer_name"] = clean_officer_name(officer_name)
     print(extracted_val)
 
-    save_to_json(extracted_val,"./output/kk_data.json")
+    save_to_json(extracted_val,output_path)
 
 if __name__ == "__main__":
-    main()
+    image_path = './output/horizontal_part_4.png'
+    output_path = "./output/kk_data.json"
+    execute(image_path, output_path)

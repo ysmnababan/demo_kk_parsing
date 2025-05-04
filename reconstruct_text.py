@@ -4,7 +4,7 @@ import re
 import json
 import os
 
-first_keywords = ["No","Nama", "Kecamatan", "Alamat", "Kabupaten", "RT", "Kode", "Desa", "Provinsi"]
+first_keywords = ["No","Nama", "Kecamatan", "Alamat", "Kabupaten", "RT", "Kode", "Desa", "Provinsi","www","wwww","wwwww","REPUBLIK","BHINNEKA"]
 last_keywords = ["No", "Keluarga", "Kecamatan", "Alamat", "Kota", "RW", "Pos", "Kelurahan", "Provinsi"]
 def get_words_with_positions(image_path):
     client = vision.ImageAnnotatorClient()
@@ -111,19 +111,21 @@ def save_to_json(data, filename):
 
     # Add only new keys (don't overwrite existing keys)
     for key, value in data.items():
-        if key not in existing_data:
-            existing_data[key] = value
+        # if key not in existing_data:
+        existing_data[key] = value
 
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(existing_data, f, ensure_ascii=False, indent=4)
 
-def main():
-    image_path = './output/horizontal_part_1.png'
+def execute(image_path, output_path):
     words = get_words_with_positions(image_path)
     lines = group_words_into_lines(words)
     r_text = reconstructed_text(lines)
     extracted_val = extract_values(r_text)
-    save_to_json(extracted_val,"./output/kk_data.json")
+    save_to_json(extracted_val,output_path)
+
 
 if __name__ == "__main__":
-    main()
+    image_path = './output/horizontal_part_1.png'
+    output_path = "./output/kk_data.json"
+    execute(image_path,output_path)
