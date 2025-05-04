@@ -3,6 +3,24 @@ import numpy as np
 import os
 import TableLinesRemover as tlr
 class ImageClickZoom:
+    def order_points_clockwise(self, pts):
+        # pts: list of 4 (x, y) points
+        rect = np.zeros((4, 2), dtype="float32")
+
+        pts = np.array(pts)
+
+        # sum: top-left has smallest sum, bottom-right has largest
+        s = pts.sum(axis=1)
+        rect[0] = pts[np.argmin(s)]
+        rect[2] = pts[np.argmax(s)]
+
+        # diff: top-right has smallest diff, bottom-left has largest
+        diff = np.diff(pts, axis=1)
+        rect[1] = pts[np.argmin(diff)]
+        rect[3] = pts[np.argmax(diff)]
+
+        return rect
+    
     def __init__(self, image, scale_init=0.5):
         self.image = image
         self.original = image.copy()
@@ -91,6 +109,9 @@ clicked_points = clicker.show()
 if len(clicked_points) != 4:
     print("You must select exactly 4 points.")
     exit()
+
+clicked_points = clicker.order_points_clockwise(clicked_points)
+
 # === Step 3: Warp perspective ===
 target_pts = np.array(clicked_points, dtype='float32')
 template_pts = np.array([
